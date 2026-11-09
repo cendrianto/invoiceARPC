@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice AR.PC</title>
+<style>
+  :root { --ink:#172033; --muted:#64748b; --line:#dbe2ea; --accent:#2457d6; --paper:#fff; --bg:#eef2f7; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:24px; background:var(--bg); color:var(--ink); font:14px/1.45 Arial, sans-serif; }
+  .toolbar { max-width:980px; margin:0 auto 16px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  button { border:0; border-radius:8px; padding:10px 14px; cursor:pointer; font-weight:700; background:var(--accent); color:#fff; }
+  button.secondary { background:#e2e8f0; color:#172033; }
+  button.danger { background:#fee2e2; color:#991b1b; padding:6px 9px; }
+  .hint { color:var(--muted); font-size:12px; margin-left:auto; }
+  .invoice { max-width:980px; margin:auto; background:var(--paper); padding:42px; box-shadow:0 8px 30px #1e293b14; border-radius:12px; }
+  .top { display:flex; justify-content:space-between; gap:24px; border-bottom:3px solid var(--accent); padding-bottom:24px; }
+  .brand { display:flex; gap:14px; align-items:flex-start; }
+  .mark { width:54px; height:54px; border-radius:12px; display:grid; place-items:center; color:#fff; background:var(--accent); font-weight:900; font-size:18px; flex:none; }
+  h1 { margin:0 0 5px; font-size:30px; letter-spacing:1px; }
+  h2 { font-size:13px; margin:0 0 10px; text-transform:uppercase; letter-spacing:.7px; color:var(--muted); }
+  p { margin:3px 0; }
+  .meta { text-align:right; min-width:210px; }
+  .meta strong { font-size:18px; }
+  .details { display:grid; grid-template-columns:1fr 1fr; gap:24px; padding:26px 0; }
+  .editable { border:1px dashed transparent; border-radius:4px; padding:2px 4px; min-width:30px; }
+  .editable:focus { outline:2px solid #93c5fd; background:#eff6ff; }
+  .field { display:block; margin:5px 0; color:var(--muted); }
+  .field input, .field textarea { display:block; width:100%; border:1px solid var(--line); border-radius:6px; padding:8px; font:inherit; color:var(--ink); background:#fff; }
+  .field textarea { resize:vertical; min-height:58px; }
+  .items { width:100%; border-collapse:collapse; margin-top:6px; }
+  .items th { text-align:left; background:#f1f5f9; color:#334155; font-size:12px; text-transform:uppercase; letter-spacing:.4px; }
+  .items th, .items td { border-bottom:1px solid var(--line); padding:11px 9px; vertical-align:middle; }
+  .items td input { width:100%; border:1px solid var(--line); border-radius:5px; padding:7px; font:inherit; }
+  .items .qty { width:76px; }
+  .items .price { width:145px; }
+  .items .total { width:145px; text-align:right; white-space:nowrap; font-weight:700; }
+  .items .action { width:48px; text-align:center; }
+  .summary { display:flex; justify-content:flex-end; margin-top:18px; }
+  .totals { width:300px; }
+  .total-row { display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--line); }
+  .total-row.grand { font-size:18px; font-weight:800; border-bottom:0; padding-top:12px; }
+  .notes { margin-top:30px; display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+  .notes textarea { width:100%; min-height:76px; padding:9px; border:1px solid var(--line); border-radius:6px; font:inherit; }
+  .sign { text-align:center; padding-top:26px; }
+  .sign-space { height:55px; }
+  .footer { margin-top:28px; padding-top:14px; border-top:1px solid var(--line); color:var(--muted); font-size:11px; text-align:center; }
+  .screen-only { }
+  @media(max-width:650px) {
+    body { padding:10px; }
+    .invoice { padding:22px 16px; }
+    .top { flex-direction:column; }
+    .meta { text-align:left; }
+    .details,.notes { grid-template-columns:1fr; gap:14px; }
+    .items th,.items td { padding:7px 5px; }
+    .items .price { width:100px; }
+    .items .qty { width:55px; }
+    .items .total { width:105px; }
+    .hint { width:100%; margin:0; }
+  }
+  @media print {
+    @page { size:A4; margin:12mm; }
+    body { background:#fff; padding:0; }
+    .toolbar,.screen-only,.action-col { display:none !important; }
+    .invoice { max-width:none; padding:0; box-shadow:none; border-radius:0; }
+    .editable { border:0; padding:0; }
+    .items td input { border:0; padding:0; background:transparent; }
+    .notes textarea { border:0; padding:0; resize:none; }
+    .items th { background:#f1f5f9 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .mark { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+  .brand-logo {
+    width: 180px;
+    height: 180px;
+    object-fit: contain;
+}
+</style>
+</head>
+<body>
+<div class="toolbar screen-only">
+  <button onclick="addItem()">+ Tambah Item</button>
+  <button class="secondary" onclick="newInvoice()">Invoice Baru</button>
+  <button class="secondary" onclick="window.print()">Cetak / Simpan PDF</button>
+  <span class="hint">Klik teks untuk mengedit. Data invoice tersimpan otomatis di browser ini.</span>
+</div>
+
+<main class="invoice">
+  <header class="top">
+	<div><img 
+    src="logoARPC.png" 
+    alt="Logo AR.PC" 
+    class="brand-logo"></div>
+    <div class="brand">
+      <div>
+        <h1 contenteditable="true" class="editable">INVOICE</h1>
+        <p contenteditable="true" class="editable"><strong>AR.PC — Rakit & Servis Komputer</strong></p>
+        <p contenteditable="true" class="editable">Instalasi ulang • Rakit PC • Upgrade • Troubleshooting</p>
+        <p contenteditable="true" class="editable">WhatsApp: 0821-1944-136</p>
+        <p contenteditable="true" class="editable">Website: arpc.my.id</p>
+      </div>
+    </div>
+    <div class="meta">
+      <p><strong id="invoiceNo">INV-20261109-001</strong></p>
+      <p style="color:var(--muted)">Tanggal Invoice</p>
+      <p><strong id="invoiceDate">9 November 2026</strong></p>
+    </div>
+  </header>
+
+  <section class="details">
+    <div>
+      <h2>Ditagihkan kepada</h2>
+      <label class="field">Nama penerima / perusahaan<input id="customerName" placeholder="Nama customer"></label>
+      <label class="field">No. telepon<input id="customerPhone" placeholder="08xxxxxxxxxx"></label>
+      <label class="field">Alamat<textarea id="customerAddress" placeholder="Alamat penerima / alamat pengiriman"></textarea></label>
+    </div>
+    <div>
+      <h2>Informasi transaksi</h2>
+	  <label class="field">Metode pembayaran
+		<select id="paymentMethod" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font:inherit">
+          <option>Tunai</option><option>Transfer</option><option>QRIS</option>
+        </select></label>
+      <label class="field">Status pembayaran
+        <select id="paymentStatus" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font:inherit">
+          <option>Belum Dibayar</option><option>DP / Sebagian</option><option>Lunas</option>
+        </select>
+      </label>
+	  <label class="field">Catatan pengiriman / layanan
+		<select id="deliveryInfo" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font:inherit">
+          <option>Ambil sendiri</option><option>Diantar</option>
+        </select>
+	  </label>
+    </div>
+  </section>
+
+  <h2>Rincian barang / jasa</h2>
+  <table class="items">
+    <thead><tr><th style="width:40px">No.</th><th>Deskripsi item</th><th class="qty">Qty</th><th class="price">Harga satuan</th><th class="total">Jumlah</th><th class="action-col action"></th></tr></thead>
+    <tbody id="itemRows"></tbody>
+  </table>
+
+  <div class="screen-only" style="margin-top:10px"><button class="secondary" onclick="addItem()">+ Tambah baris item</button></div>
+
+  <div class="summary">
+    <div class="totals">
+      <div class="total-row"><span>Subtotal</span><strong id="subtotal">Rp0</strong></div>
+      <div class="total-row"><span>Diskon (Rp)</span><input id="discount" type="number" min="0" value="0" style="width:110px;text-align:right;border:1px solid var(--line);border-radius:5px;padding:5px" oninput="calculate()"></div>
+      <div class="total-row"><span>Biaya tambahan (Rp)</span><input id="extra" type="number" min="0" value="0" style="width:110px;text-align:right;border:1px solid var(--line);border-radius:5px;padding:5px" oninput="calculate()"></div>
+      <div class="total-row grand"><span>Total</span><span id="grandTotal">Rp0</span></div>
+    </div>
+  </div>
+
+  <section class="notes">
+    <div><h2>Catatan</h2><textarea id="notes" placeholder="Garansi, estimasi pengerjaan, atau catatan lainnya..."></textarea></div>
+    <div class="sign"><p>Hormat kami,</p><div class="sign-space"></div><p><strong contenteditable="true" class="editable">AR.PC</strong></p></div>
+  </section>
+  <div class="footer" contenteditable="true">Terima kasih telah mempercayakan kebutuhan komputer Anda kepada AR.PC.</div>
+</main>
+
+<script>
+const rupiah = n => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(n)||0);
+const today = new Date();
+const fmtDate = d => new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'long',year:'numeric'}).format(d);
+let sequence = Number(localStorage.getItem('arpc_invoice_sequence') || 1);
+
+function makeNumber() {
+  const date = new Date();
+  const ymd = `${date.getFullYear()}${String(date.getMonth()+1).padStart(2,'0')}${String(date.getDate()).padStart(2,'0')}`;
+  return `INV-${ymd}-${String(sequence).padStart(3,'0')}`;
+}
+function setDates() {
+  document.getElementById('invoiceNo').textContent = makeNumber();
+  document.getElementById('invoiceDate').textContent = fmtDate(today);
+  document.getElementById('dueDate').textContent = fmtDate(today);
+}
+function addItem(description='', qty=1, price=0) {
+  const tbody = document.getElementById('itemRows');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td class="row-no"></td>
+    <td><input class="desc" placeholder="Contoh: AMD Ryzen 5 5600" value="${escapeAttr(description)}"></td>
+    <td><input class="qty-input" type="number" min="0" step="1" value="${qty}"></td>
+    <td><input class="price-input" type="number" min="0" step="1000" value="${price}"></td>
+    <td class="total line-total">Rp0</td>
+    <td class="action-col action"><button class="danger" type="button" title="Hapus item">×</button></td>`;
+  tr.querySelectorAll('input').forEach(el => el.addEventListener('input', calculate));
+  tr.querySelector('button').addEventListener('click', () => { tr.remove(); calculate(); });
+  tbody.appendChild(tr);
+  calculate();
+}
+function escapeAttr(s) { return String(s).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+function calculate() {
+  let subtotal = 0;
+  [...document.querySelectorAll('#itemRows tr')].forEach((tr,i) => {
+    tr.querySelector('.row-no').textContent = i+1;
+    const qty = Math.max(0, Number(tr.querySelector('.qty-input').value)||0);
+    const price = Math.max(0, Number(tr.querySelector('.price-input').value)||0);
+    const line = qty*price;
+    subtotal += line;
+    tr.querySelector('.line-total').textContent = rupiah(line);
+  });
+  const discount = Math.max(0,Number(document.getElementById('discount').value)||0);
+  const extra = Math.max(0,Number(document.getElementById('extra').value)||0);
+  document.getElementById('subtotal').textContent = rupiah(subtotal);
+  document.getElementById('grandTotal').textContent = rupiah(Math.max(0,subtotal-discount+extra));
+  saveDraft();
+}
+function newInvoice() {
+  if (!confirm('Buat invoice baru? Invoice saat ini akan diganti.')) return;
+  sequence++;
+  localStorage.setItem('arpc_invoice_sequence', sequence);
+  document.querySelectorAll('#customerName,#customerPhone,#customerAddress,#paymentMethod,#deliveryInfo,#notes').forEach(el=>el.value='');
+  document.getElementById('paymentStatus').value='Belum Dibayar';
+  document.getElementById('discount').value=0; document.getElementById('extra').value=0;
+  document.getElementById('itemRows').innerHTML='';
+  setDates(); addItem(); saveDraft();
+}
+function saveDraft() {
+  const data = {
+    customerName: customerName.value, customerPhone: customerPhone.value, customerAddress: customerAddress.value,
+    paymentMethod: paymentMethod.value, paymentStatus: paymentStatus.value, deliveryInfo: deliveryInfo.value,
+    notes: notes.value, discount: discount.value, extra: extra.value,
+    items: [...document.querySelectorAll('#itemRows tr')].map(tr=>({
+      desc:tr.querySelector('.desc').value, qty:tr.querySelector('.qty-input').value, price:tr.querySelector('.price-input').value
+    }))
+  };
+  try { localStorage.setItem('arpc_invoice_draft',JSON.stringify(data)); } catch(e) {}
+}
+function loadDraft() {
+  try {
+    const d=JSON.parse(localStorage.getItem('arpc_invoice_draft')||'null');
+    if(!d) return false;
+    for(const id of ['customerName','customerPhone','customerAddress','paymentMethod','paymentStatus','deliveryInfo','notes','discount','extra']) {
+      if(d[id]!==undefined) document.getElementById(id).value=d[id];
+    }
+    document.getElementById('itemRows').innerHTML='';
+    (d.items||[]).forEach(x=>addItem(x.desc,x.qty,x.price));
+    return true;
+  } catch(e) { return false; }
+}
+document.querySelectorAll('.details input,.details textarea,.details select,#notes').forEach(el=>el.addEventListener('input',saveDraft));
+setDates();
+if(!loadDraft() || !document.querySelector('#itemRows tr')) addItem();
+</script>
+</body>
+</html>
